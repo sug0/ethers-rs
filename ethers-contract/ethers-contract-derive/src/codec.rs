@@ -12,9 +12,10 @@ pub fn derive_codec_impl(input: &DeriveInput) -> proc_macro2::TokenStream {
     quote! {
         impl #ethers_core::abi::AbiDecode for #name {
             fn decode(bytes: impl AsRef<[u8]>) -> ::std::result::Result<Self, #ethers_core::abi::AbiError> {
-                if let #ethers_core::abi::ParamType::Tuple(params) = <Self as #ethers_core::abi::AbiType>::param_type() {
-                    let tokens = #ethers_core::abi::decode(&params, bytes.as_ref())?;
-                    Ok(<Self as #ethers_core::abi::Tokenizable>::from_token(#ethers_core::abi::Token::Tuple(tokens))?)
+                if let param @ #ethers_core::abi::ParamType::Tuple(_) = <Self as #ethers_core::abi::AbiType>::param_type() {
+                    let token = #ethers_core::abi::decode(&[param], bytes.as_ref())?
+                        .pop().expect("the vec of tokens should have one element - a tuple");
+                    Ok(<Self as #ethers_core::abi::Tokenizable>::from_token(token)?)
                 } else {
                     Err(
                         #ethers_core::abi::InvalidOutputType("Expected tuple".to_string()).into()
